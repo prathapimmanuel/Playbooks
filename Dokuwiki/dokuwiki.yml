@@ -1,0 +1,44 @@
+- hosts: webservers
+  user: ubuntu 
+  sudo: yes
+  
+  tasks:
+  - name: Run apt-get update
+    shell: apt-get update
+    sudo: yes
+
+  - name: Install list of packages
+    apt: pkg={{item}} state=installed
+    with_items:
+     - apache2
+     - libapache2-mod-php5
+    sudo: yes
+
+  - name: apache2.conf to AllowOverrides setting to use .htaccess files for security
+    template: src=apache2.conf.j2 dest=/etc/apache2/apache2.conf mode=0644
+    sudo: yes
+
+  - name: Apache2 config file for document root for sites
+    template: src=000-default.conf.j2 dest=/etc/apache2/sites-available/000-default.conf mode=0644
+    sudo: yes
+
+  - name: enabled mod_rewrite
+    apache2_module: name=rewrite state=present
+    notify:
+     - Restart apache2
+    sudo: yes
+
+  - name: Download dokuwiki and change ownership
+    shell: "{{ item }} chdir=/var/www/"
+    with_items:
+     - wget http://download.dokuwiki.org/src/dokuwiki/dokuwiki-stable.tgz
+     - tar xvf dokuwiki-stable.tgz
+     - mv dokuwiki-*/ dokuwiki
+     - chown -R www-data:www-data /var/www/dokuwiki
+    notify:
+     - Restart apache2
+    sudo: yes
+
+  handlers:
+  - name: Restart apache2
+    service: name=apache2 state=restarted

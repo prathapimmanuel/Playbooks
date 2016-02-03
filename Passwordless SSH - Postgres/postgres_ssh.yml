@@ -1,0 +1,53 @@
+- hosts: master
+  user: ubuntu
+  sudo: yes
+  vars:
+     master_ip: 0-0-0-0
+
+  tasks:
+    - name: Create .ssh
+      file: path=/var/lib/postgresql/.ssh state=directory
+      sudo: yes
+      sudo_user: postgres
+
+    - name: Copy private key
+      template: src=master_id_rsa.j2 dest=/var/lib/postgresql/.ssh/id_rsa owner=postgres group=postgres mode=0600
+      sudo: yes
+      sudo_user: postgres
+
+    - name: Copy public key  
+      template: src=master_id_rsa.pub.j2 dest=/var/lib/postgresql/.ssh/id_rsa.pub  owner=postgres group=postgres mode=0600
+      sudo: yes
+      sudo_user: postgres
+
+    - name: copy slave's public key to authorized_keys
+      template: src=slave_id_rsa.pub.j2 dest=/var/lib/postgresql/.ssh/authorized_keys owner=postgres group=postgres mode=0600  
+      sudo: yes
+      sudo_user: postgres
+
+- hosts: slave
+  user: ubuntu
+  sudo: yes
+  vars:
+     slave_ip: 0-0-0-0
+
+  tasks:
+    - name: Create .ssh
+      file: path=/var/lib/postgresql/.ssh state=directory
+      sudo: yes
+      sudo_user: postgres
+
+    - name: Copy private key
+      template: src=slave_id_rsa.j2 dest=/var/lib/postgresql/.ssh/id_rsa owner=postgres group=postgres mode=0600
+      sudo: yes
+      sudo_user: postgres
+
+    - name: Copy public key  
+      template: src=slave_id_rsa.pub.j2 dest=/var/lib/postgresql/.ssh/id_rsa.pub  owner=postgres group=postgres mode=0600
+      sudo: yes
+      sudo_user: postgres
+
+      name: copy master's public key to authorized_keys
+      template: src=master_id_rsa.pub.j2 dest=/var/lib/postgresql/.ssh/authorized_keys owner=postgres group=postgres mode=0600  
+      sudo: yes
+      sudo_user: postgres

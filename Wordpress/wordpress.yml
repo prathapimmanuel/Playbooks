@@ -1,0 +1,82 @@
+- hosts: webservers
+  user: abi
+  vars:
+   mysql_pass: password
+
+  tasks:
+   - name: Run update
+     apt: update_cache=yes
+     sudo: yes
+
+   - name: Setting mysql password
+     shell: "{{ item }}"
+     with_items:
+      - echo mysql-server mysql-server/root_password password {{ mysql_pass }} | debconf-set-selections
+      - echo mysql-server mysql-server/root_password_again password {{ mysql_pass }} | debconf-set-selections 
+     sudo: yes
+
+   - name: Install packages
+     apt: pkg={{item}} state=installed
+     with_items:
+      - mysql-server
+      - apache2
+      - libapache2-mod-php5
+      - libapache2-mod-auth-mysql
+      - php5-mysql
+      - php5
+      - php5-mcrypt
+      - php5-gd 
+      - libssh2-php
+      - python-mysqldb
+     sudo: yes
+
+   - name: Activate mysql using command
+     shell: mysql_install_db
+     sudo: yes
+
+   - name: Copy dir.conf in apache2
+     template: src=dir.conf.j2 dest=/etc/apache2/mods-enabled/dir.conf mode=0644
+     sudo: yes
+
+   - name: enabled mod_rewrite
+     apache2_module: name=rewrite state=present
+     sudo: yes
+
+   - name: Create wordpress db  
+     mysql_db: login_user=root login_password={{ mysql_pass }} name=wordpress state=present
+     sudo: yes
+
+   - name: Create wordpressuser
+     mysql_user: login_user=root login_password={{ mysql_pass }} name=wordpressuser password={{ mysql_pass }} priv=*.*:ALL,GRANT state=present
+     with_items:
+      - wordpress.*:ALL
+     sudo: yes
+
+   - name: Install wordpress
+     shell: wget http://wordpress.org/latest.tar.gz && tar xzvf latest.tar.gz 
+     sudo: yes
+     
+   - name: Remove wp-config-sample.php
+     shell: rm /home/abi/wordpress/wp-config-sample.php
+     sudo: yes
+
+   - name: Copy wp-config.php
+     template: src=wp-config.php.j2 dest=/home/abi/wordpress/wp-config.php mode=0644
+     sudo: yes
+
+   - name: mkdir wp-content/uploads in /var/www/html
+     file: path=/var/www/html/wp-content/uploads state=directory
+     sudo: yes
+
+   - name: Rsync
+     shell: "{{ item }}"
+     with_items:
+      - rsync -avP /home/abi/wordpress/ /var/www/html/    
+      - chown -R abi:www-data *
+      - chown -R :www-data /var/www/html/wp-content/uploads
+     sudo: yes
+
+   - name: Restart apache2
+     shell: service apache2 restart
+     sudo: yes
+

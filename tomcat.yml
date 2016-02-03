@@ -1,0 +1,42 @@
+- hosts: webservers
+  user: ubuntu 
+  sudo: yes
+  
+  tasks:
+  - name: Run apt-get update
+    shell: apt-get update
+    sudo: yes
+
+  - name: Install java tomcat7 git
+    apt: pkg={{item}} state=installed 
+    with_items:
+     - openjdk-7-jdk
+     - tomcat7
+     - git
+    sudo: yes
+
+  - name: Export java
+    shell: export JAVA_HOME=/usr/lib/jvm/java-7-openjdk && export PATH=$PATH:/usr/lib/jvm/java-7-openjdk/bin
+    sudo: yes
+
+  - name: Git checkout
+    git: repo=https://github.com/*******/java-sample.git dest=/home/ubuntu/sample
+    sudo: yes
+
+  - name: Create war file
+    shell: jar cvf sampleapp.war * chdir=/home/ubuntu/sample/
+    sudo: yes
+
+  - name: Copy war file to tomcat7 webapps
+    shell: "{{ item }}"
+    with_items:
+     - mv /home/ubuntu/sample/*.war /var/lib/tomcat7/webapps
+     - mv /var/lib/tomcat7/webapps/sampleapp/src/main/webapp/* /var/lib/tomcat7/webapps/sampleapp/
+    sudo: yes
+    notify:
+     - Restart tomcat7
+
+  handlers:
+  - name: Restart tomcat7 
+    service: name=tomcat7 state=restarted enabled=yes
+    sudo: yes

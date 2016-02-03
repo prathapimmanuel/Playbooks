@@ -1,0 +1,36 @@
+- hosts: webservers
+  user: ubuntu 
+  sudo: yes
+  
+  tasks:
+  - name: Install chef
+    shell: curl -L https://www.opscode.com/chef/install.sh | bash
+    sudo: yes
+
+  - name: Download chef-repo structure
+    shell: "{{ item }}"
+    with_items:
+    - wget http://github.com/opscode/chef-repo/tarball/master
+    - tar -zxf master
+    - mv chef-chef-repo* chef-repo
+    - rm master
+    sudo: yes
+
+  - name: Create .chef directory 
+    file: path=/home/ubuntu/chef-repo/.chef state=directory
+    sudo: yes
+
+  - name: Configure knife.rb
+    shell: echo "cookbook_path [ '/home/ubuntu/chef-repo/cookbooks' ]" > /home/ubuntu/chef-repo/.chef/knife.rb
+    sudo: yes
+
+  - name: Copy solo.rb
+    template: src=solo.rb.j2 dest=/home/ubuntu/chef-repo/solo.rb mode=0644
+    sudo: yes
+  
+  - name: Copy web.json
+    template: src=web.json.j2 dest=/home/ubuntu/chef-repo/web.json mode=0644
+    sudo: yes
+    
+
+ 

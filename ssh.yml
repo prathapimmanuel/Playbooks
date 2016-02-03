@@ -1,0 +1,11 @@
+- hosts: my
+  user: ubuntu
+  sudo: yes
+  tasks:
+  - name: Generate SSH Keys  
+    user: name=postgres generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa
+  
+  - replace: dest=~postgres/.ssh/id_rsa.pub regexp='ansible-generated on ' replace='postgres@' backup=yes
+
+  - name: copy the generated public key to an accessible location for the next play
+    shell: cp ~postgres/.ssh/id_rsa.pub /tmp/postgres.pub
